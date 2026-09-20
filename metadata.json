@@ -1,0 +1,11 @@
+{
+  "name": "سامانه آموزش و کلاس آنلاین",
+  "description": "سامانه جامع آموزش و کلاس آنلاین با سطوح دسترسی مدیر، مدرس و دانش‌آموز، ویدیو کنفرانس تحت وب، تکالیف و کارنامه",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

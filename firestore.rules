@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        (request.auth.token.email == 'a9332216747@gmail.com' ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'));
+    }
+
+    function isTeacher() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'TEACHER';
+    }
+
+    function isStudent() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'STUDENT';
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow delete: if isAdmin();
+    }
+
+    // Classes collection
+    match /classes/{classId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Assignments
+    match /assignments/{assignmentId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isTeacher();
+    }
+
+    // Submissions
+    match /submissions/{submissionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (isStudent() || isAdmin());
+      allow update: if isAdmin() || isTeacher() || (isStudent() && resource.data.studentId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Grades
+    match /grades/{gradeId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isTeacher();
+    }
+
+    // Audit logs
+    match /auditLogs/{logId} {
+      allow read: if isAdmin() || isTeacher();
+      allow write: if isAdmin() || isTeacher();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow write: if isSignedIn();
+    }
+
+    // Live Online Classroom Sessions & Isolated WebRTC Signaling
+    match /liveSessions/{sessionId} {
+      // Read session metadata if signed in
+      allow read: if isSignedIn();
+      // Teacher can start live session if assigned
+      allow create: if isAdmin() || (isTeacher() && request.resource.data.teacherId == request.auth.uid);
+      // Teacher can update own live session status & metadata
+      allow update: if isAdmin() || (isTeacher() && resource.data.teacherId == request.auth.uid);
+      allow delete: if isAdmin();
+
+      // Participants list
+      match /participants/{participantId} {
+        allow read: if isSignedIn();
+        allow create: if isAdmin() || (isSignedIn() && request.auth.uid == participantId);
+        allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == participantId) ||
+          (isTeacher() && get(/databases/$(database)/documents/liveSessions/$(sessionId)).data.teacherId == request.auth.uid);
+      }
+
+      // Teacher ICE Candidates
+      match /teacherCandidates/{candidateId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isAdmin() ||
+          (isTeacher() && get(/databases/$(database)/documents/liveSessions/$(sessionId)).data.teacherId == request.auth.uid);
+      }
+
+      // Isolated Student Connections (Offer, Answer, Status)
+      match /studentConnections/{studentId} {
+        allow read: if isAdmin() ||
+          (isTeacher() && get(/databases/$(database)/documents/liveSessions/$(sessionId)).data.teacherId == request.auth.uid) ||
+          (isSignedIn() && request.auth.uid == studentId);
+        allow create: if isAdmin() ||
+          (isTeacher() && get(/databases/$(database)/documents/liveSessions/$(sessionId)).data.teacherId == request.auth.uid) ||
+          (isStudent() && request.auth.uid == studentId);
+        allow update: if isAdmin() ||
+          (isTeacher() && get(/databases/$(database)/documents/liveSessions/$(sessionId)).data.teacherId == request.auth.uid) ||
+          (isStudent() && request.auth.uid == studentId);
+        allow delete: if isAdmin() ||
+          (isTeacher() && get(/databases/$(database)/documents/liveSessions/$(sessionId)).data.teacherId == request.auth.uid);
+
+        // Student-specific ICE candidates
+        match /candidates/{candidateId} {
+          allow read: if isAdmin() ||
+            (isTeacher() && get(/databases/$(database)/documents/liveSessions/$(sessionId)).data.teacherId == request.auth.uid) ||
+            (isSignedIn() && request.auth.uid == studentId);
+          allow create, update, delete: if isAdmin() ||
+            (isStudent() && request.auth.uid == studentId) ||
+            (isTeacher() && get(/databases/$(database)/documents/liveSessions/$(sessionId)).data.teacherId == request.auth.uid);
+        }
+      }
+    }
+  }
+}
+

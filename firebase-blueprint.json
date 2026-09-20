@@ -1,0 +1,142 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "کاربر سامانه شامل مدیر، مدرس و دانش‌آموز",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"] },
+        "firstName": { "type": "string", "maxLength": 100 },
+        "lastName": { "type": "string", "maxLength": 100 },
+        "username": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "mobile": { "type": "string", "maxLength": 20 },
+        "avatar": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "subject": { "type": "string", "maxLength": 150 },
+        "studentId": { "type": "string", "maxLength": 50 },
+        "gradeLevel": { "type": "string", "maxLength": 100 },
+        "assignedTeacherId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["role", "firstName", "lastName", "username", "email", "status"]
+    },
+    "Class": {
+      "title": "Class",
+      "description": "کلاس درس و برنامه کلاسی",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "teacherName": { "type": "string", "maxLength": 150 },
+        "scheduleDay": { "type": "string", "maxLength": 100 },
+        "startTime": { "type": "string", "maxLength": 20 },
+        "endTime": { "type": "string", "maxLength": 20 },
+        "status": { "type": "string", "enum": ["SCHEDULED", "LIVE", "COMPLETED", "CANCELLED"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "subject", "teacherId", "scheduleDay"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "تکالیف درسی تعریف شده توسط اساتید",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 250 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "deadline": { "type": "string", "maxLength": 50 },
+        "maxScore": { "type": "number" },
+        "attachmentUrl": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "classId", "teacherId", "deadline"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "پاسخ‌های ارسالی دانش‌آموزان برای تکالیف",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "assignmentId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "fileName": { "type": "string", "maxLength": 250 },
+        "fileUrl": { "type": "string", "maxLength": 500 },
+        "submittedAt": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "REVIEWED"] },
+        "grade": { "type": "number" },
+        "feedback": { "type": "string", "maxLength": 1500 }
+      },
+      "required": ["assignmentId", "studentId", "teacherId", "fileUrl"]
+    },
+    "Grade": {
+      "title": "Grade",
+      "description": "نمرات روزانه، کلاسی و حضور غیاب",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "dailyGrade": { "type": "number" },
+        "participationGrade": { "type": "number" },
+        "assignmentGrade": { "type": "number" },
+        "attendanceStatus": { "type": "string", "enum": ["PRESENT", "ABSENT", "LATE", "EXCUSED"] },
+        "teacherNotes": { "type": "string", "maxLength": 1000 },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["classId", "studentId", "teacherId", "date"]
+    },
+    "LiveSession": {
+      "title": "LiveSession",
+      "description": "جلسه کلاس آنلاین زنده و سیگنالینگ وب‌آر‌تی‌سی",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["scheduled", "starting", "live", "ended"] },
+        "startedAt": { "type": "string" },
+        "endedAt": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["sessionId", "classId", "teacherId", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "اطلاعات حساب کاربران، اساتید و دانش‌آموزان"
+    },
+    "/classes/{classId}": {
+      "schema": { "$ref": "#/entities/Class" },
+      "description": "اطلاعات کلاس‌های آموزشی و زمان‌بندی"
+    },
+    "/assignments/{assignmentId}": {
+      "schema": { "$ref": "#/entities/Assignment" },
+      "description": "تکالیف درسی تعریف شده برای کلاس‌ها"
+    },
+    "/submissions/{submissionId}": {
+      "schema": { "$ref": "#/entities/Submission" },
+      "description": "ارسال‌های تمرین و تکالیف دانش‌آموزان"
+    },
+    "/grades/{gradeId}": {
+      "schema": { "$ref": "#/entities/Grade" },
+      "description": "نمرات روزانه، فعالیت و انضباطی دانش‌آموزان"
+    },
+    "/liveSessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/LiveSession" },
+      "description": "جلسات آنلاین زنده و فراداده سیگنالینگ WebRTC"
+    }
+  }
+}
